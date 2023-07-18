@@ -117,10 +117,22 @@ namespace LMS_CustomIdentity.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetStudentsInClass(string subject, int num, string season, int year)
         {
-            return Json(null);
+            var students = from e in db.Enrollments
+                           where e.Class.Course.Department == subject &&
+                                 e.Class.Course.Number == num &&
+                                 e.Class.Season == season &&
+                                 e.Class.Year == year
+                           select new
+                           {
+                               fname = e.Student.FirstName,
+                               lname = e.Student.LastName,
+                               uid = e.Student.Uid,
+                               dob = e.Student.DateOfBirth,
+                               grade = e.Grade
+                           };
+
+            return Json(students);
         }
-
-
 
         /// <summary>
         /// Returns a JSON array with all the assignments in an assignment category for a class.
@@ -140,9 +152,22 @@ namespace LMS_CustomIdentity.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetAssignmentsInCategory(string subject, int num, string season, int year, string category)
         {
-            return Json(null);
-        }
+            var assignments = from a in db.Assignments
+                              where a.Category.Class.Course.Department == subject &&
+                                    a.Category.Class.Course.Number == num &&
+                                    a.Category.Class.Season == season &&
+                                    a.Category.Class.Year == year &&
+                                    (category == null || a.Category.Name == category)
+                              select new
+                              {
+                                  aname = a.Name,
+                                  cname = a.Category.Name,
+                                  due = a.Due,
+                                  submissions = a.Submissions.Count()
+                              };
 
+            return Json(assignments);
+        }
 
         /// <summary>
         /// Returns a JSON array of the assignment categories for a certain class.
@@ -158,7 +183,18 @@ namespace LMS_CustomIdentity.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetAssignmentCategories(string subject, int num, string season, int year)
         {
-            return Json(null);
+            var categories = from ac in db.AssignmentCategories
+                             where ac.Class.Course.Department == subject &&
+                                   ac.Class.Course.Number == num &&
+                                   ac.Class.Season == season &&
+                                   ac.Class.Year == year
+                             select new
+                             {
+                                 name = ac.Name,
+                                 weight = ac.Weight
+                             };
+
+            return Json(categories);
         }
 
         /// <summary>
@@ -174,7 +210,35 @@ namespace LMS_CustomIdentity.Controllers
         /// <returns>A JSON object containing {success = true/false} </returns>
         public IActionResult CreateAssignmentCategory(string subject, int num, string season, int year, string category, int catweight)
         {
-            return Json(new { success = false });
+            var course = db.Courses.FirstOrDefault(c => c.Department == subject && c.Number == num);
+            if (course == null)
+            {
+                return Json(new { success = false });
+            }
+
+            var existingCategory = db.AssignmentCategories.FirstOrDefault(ac =>
+                ac.Class.CourseId == course.Id &&
+                ac.Class.Season == season &&
+                ac.Class.Year == year &&
+                ac.Name == category);
+
+            if (existingCategory != null)
+            {
+                return Json(new { success = false });
+            }
+
+            var newCategory = new AssignmentCategory
+            {
+                Name = category,
+                Weight = (ushort)catweight,
+                ClassId = db.Classes
+                    .FirstOrDefault(c => c.CourseId == course.Id && c.Season == season && c.Year == year)?.Id ?? 0
+            };
+
+            db.AssignmentCategories.Add(newCategory);
+            db.SaveChanges();
+
+            return Json(new { success = true });
         }
 
         /// <summary>
@@ -192,9 +256,54 @@ namespace LMS_CustomIdentity.Controllers
         /// <returns>A JSON object containing success = true/false</returns>
         public IActionResult CreateAssignment(string subject, int num, string season, int year, string category, string asgname, int asgpoints, DateTime asgdue, string asgcontents)
         {
-            return Json(new { success = false });
-        }
+            var course = db.Courses.FirstOrDefault(c => c.Department == subject && c.Number == num);
+            if (course == null)
+            {
+                return Json(new { success = false });
+            }
 
+            var classObj = db.Classes.FirstOrDefault(c =>
+                c.CourseId == course.Id &&
+                c.Season == season &&
+                c.Year == year);
+
+            if (classObj == null)
+            {
+                return Json(new { success = false });
+            }
+
+            var assignmentCategory = db.AssignmentCategories.FirstOrDefault(ac =>
+                ac.ClassId == classObj.Id &&
+                ac.Name == category);
+
+            if (assignmentCategory == null)
+            {
+                return Json(new { success = false });
+            }
+
+            var existingAssignment = db.Assignments.FirstOrDefault(a =>
+                a.CategoryId == assignmentCategory.Id &&
+                a.Name == asgname);
+
+            if (existingAssignment != null)
+            {
+                return Json(new { success = false });
+            }
+
+            var newAssignment = new Assignment
+            {
+                CategoryId = assignmentCategory.Id,
+                Name = asgname,
+                Contents = asgcontents,
+                Points = (ushort)asgpoints,
+                Due = asgdue
+            };
+
+            db.Assignments.Add(newAssignment);
+            db.SaveChanges();
+
+            return Json(new { success = true });
+        }
 
         /// <summary>
         /// Gets a JSON array of all the submissions to a certain assignment.
@@ -215,9 +324,54 @@ namespace LMS_CustomIdentity.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetSubmissionsToAssignment(string subject, int num, string season, int year, string category, string asgname)
         {
-            return Json(null);
-        }
+            var course = db.Courses.FirstOrDefault(c => c.Department == subject && c.Number == num);
+            if (course == null)
+            {
+                return Json(null);
+            }
 
+            var classObj = db.Classes.FirstOrDefault(c =>
+                c.CourseId == course.Id &&
+                c.Season == season &&
+                c.Year == year);
+
+            if (classObj == null)
+            {
+                return Json(null);
+            }
+
+            var assignmentCategory = db.AssignmentCategories.FirstOrDefault(ac =>
+                ac.ClassId == classObj.Id &&
+                ac.Name == category);
+
+            if (assignmentCategory == null)
+            {
+                return Json(null);
+            }
+
+            var assignment = db.Assignments.FirstOrDefault(a =>
+                a.CategoryId == assignmentCategory.Id &&
+                a.Name == asgname);
+
+            if (assignment == null)
+            {
+                return Json(null);
+            }
+
+            var submissions = db.Submissions
+                .Where(s => s.AssignmentId == assignment.Id)
+                .Select(s => new
+                {
+                    fname = s.Student.FirstName,
+                    lname = s.Student.LastName,
+                    uid = s.Student.Uid,
+                    time = s.Time,
+                    score = s.Score
+                })
+                .ToList();
+
+            return Json(submissions);
+        }
 
         /// <summary>
         /// Set the score of an assignment submission
@@ -233,9 +387,54 @@ namespace LMS_CustomIdentity.Controllers
         /// <returns>A JSON object containing success = true/false</returns>
         public IActionResult GradeSubmission(string subject, int num, string season, int year, string category, string asgname, string uid, int score)
         {
-            return Json(new { success = false });
-        }
+            var course = db.Courses.FirstOrDefault(c => c.Department == subject && c.Number == num);
+            if (course == null)
+            {
+                return Json(new { success = false });
+            }
 
+            var classObj = db.Classes.FirstOrDefault(c =>
+                c.CourseId == course.Id &&
+                c.Season == season &&
+                c.Year == year);
+
+            if (classObj == null)
+            {
+                return Json(new { success = false });
+            }
+
+            var assignmentCategory = db.AssignmentCategories.FirstOrDefault(ac =>
+                ac.ClassId == classObj.Id &&
+                ac.Name == category);
+
+            if (assignmentCategory == null)
+            {
+                return Json(new { success = false });
+            }
+
+            var assignment = db.Assignments.FirstOrDefault(a =>
+                a.CategoryId == assignmentCategory.Id &&
+                a.Name == asgname);
+
+            if (assignment == null)
+            {
+                return Json(new { success = false });
+            }
+
+            var submission = db.Submissions.FirstOrDefault(s =>
+                s.AssignmentId == assignment.Id &&
+                s.StudentId == uid);
+
+            if (submission == null)
+            {
+                return Json(new { success = false });
+            }
+
+            submission.Score = (ushort)score;
+            db.SaveChanges();
+
+            return Json(new { success = true });
+        }
 
         /// <summary>
         /// Returns a JSON array of the classes taught by the specified professor
@@ -249,12 +448,27 @@ namespace LMS_CustomIdentity.Controllers
         /// <param name="uid">The professor's uid</param>
         /// <returns>The JSON array</returns>
         public IActionResult GetMyClasses(string uid)
-        {            
-            return Json(null);
+        {
+            var professor = db.Professors.FirstOrDefault(p => p.Uid == uid);
+            if (professor == null)
+            {
+                return Json(new List<object>());
+            }
+
+            var classes = db.Classes.Where(c => c.ProfessorId == uid)
+                .Select(c => new
+                {
+                    subject = c.Course.Department,
+                    number = c.Course.Number,
+                    name = c.Course.Name,
+                    season = c.Season,
+                    year = c.Year
+                }).ToList();
+
+            return Json(classes);
         }
 
 
-        
         /*******End code to modify********/
     }
 }
