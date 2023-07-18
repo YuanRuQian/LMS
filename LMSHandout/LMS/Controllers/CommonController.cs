@@ -171,6 +171,14 @@ namespace LMS.Controllers
             var student = db.Students.FirstOrDefault(s => s.Uid == uid);
             var admin = db.Administrators.FirstOrDefault(a => a.Uid == uid);
 
+            if(student == null)
+            {
+                Console.WriteLine($"uid: {uid} student is null");
+            } else
+            {
+                Console.WriteLine($"uid: {uid} student is not null");
+            }
+
             if (professor != null)
             {
                 var userObject = new
@@ -178,7 +186,7 @@ namespace LMS.Controllers
                     fname = professor.FirstName,
                     lname = professor.LastName,
                     uid = professor.Uid,
-                    department = professor.DepartmentNavigation.Name
+                    department = professor.Department
                 };
 
                 return Json(userObject);
@@ -191,7 +199,7 @@ namespace LMS.Controllers
                     fname = student.FirstName,
                     lname = student.LastName,
                     uid = student.Uid,
-                    department = student.DepartmentNavigation.Name
+                    department = student.Department
                 };
 
                 return Json(userObject);

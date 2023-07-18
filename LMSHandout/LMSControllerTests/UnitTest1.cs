@@ -5,24 +5,62 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json.Linq;
 using System;
+using System.Text.Json;
+using Xunit.Abstractions;
 
 namespace LMSControllerTests
 {
     public class UnitTest1
     {
-       [Fact]
+        private readonly ITestOutputHelper output;
+
+        public UnitTest1(ITestOutputHelper output)
+        {
+            this.output = output;
+        }
+
+        [Fact]
         public void Test1()
         {
             // An example of a simple unit test on the CommonController
             CommonController ctrl = new CommonController(MakeTinyDB());
 
+            // TEST: GetDepartments
             var allDepts = ctrl.GetDepartments() as JsonResult;
 
-            dynamic x = allDepts.Value;
+            var jsonResult = JsonSerializer.Serialize(allDepts.Value);
+            output.WriteLine(jsonResult);
 
-            Assert.Equal(1, x.Length);
-            Assert.Equal("CS", x[0].subject);
+            var jsonArray = JArray.Parse(jsonResult);
+            var firstItem = jsonArray[0] as JObject;
+
+            Assert.Equal(1, jsonArray.Count);
+
+            var subject = (string)firstItem["subject"];
+            var name = (string)firstItem["name"];
+
+            Assert.Equal("CS", subject);
+            Assert.Equal("KSoC", name);
+
+            // TEST: GetCatalog
+            var catalogResult = ctrl.GetCatalog() as JsonResult;
+
+            var catalogJsonResult = JsonSerializer.Serialize(catalogResult.Value);
+            output.WriteLine(catalogJsonResult);
+
+            var catalogArray = JArray.Parse(catalogJsonResult);
+            var catalogItem = catalogArray[0] as JObject;
+
+            var catalogSubject = (string)catalogItem["subject"];
+            var catalogName = (string)catalogItem["dname"];
+            var coursesArray = (JArray)catalogItem["courses"];
+
+            Assert.Equal(1, catalogArray.Count);
+            Assert.Equal("CS", catalogSubject);
+            Assert.Equal("KSoC", catalogName);
+            Assert.Single(coursesArray);
         }
 
 

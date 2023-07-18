@@ -180,8 +180,6 @@ namespace LMS.Areas.Identity.Pages.Account
             }
         }
 
-        /*******Begin code to modify********/
-
         /// <summary>
         /// Create a new user of the LMS with the specified information and add it to the database.
         /// Assigns the user a unique uID consisting of a 'u' followed by 7 digits.
@@ -192,11 +190,62 @@ namespace LMS.Areas.Identity.Pages.Account
         /// <param name="departmentAbbrev">The department abbreviation that the user belongs to (ignore for Admins) </param>
         /// <param name="role">The user's role: one of "Administrator", "Professor", "Student"</param>
         /// <returns>The uID of the new user</returns>
-        string CreateNewUser( string firstName, string lastName, DateTime DOB, string departmentAbbrev, string role )
+        private string CreateNewUser(string firstName, string lastName, DateTime DOB, string departmentAbbrev, string role)
         {
-            return "unknown";
+            string uid = "u" + GetUniqueUID(); // Generate a unique UID for the user
+
+            switch (role)
+            {
+                case "Administrator":
+                    // Create and add a new Administrator to the database
+                    Administrator administrator = new Administrator
+                    {
+                        Uid = uid,
+                        FirstName = firstName,
+                        LastName = lastName,
+                        DateOfBirth = DateOnly.FromDateTime(DOB)
+                    };
+                    db.Administrators.Add(administrator);
+                    break;
+                case "Professor":
+                    // Create and add a new Professor to the database
+                    Professor professor = new Professor
+                    {
+                        Uid = uid,
+                        FirstName = firstName,
+                        LastName = lastName,
+                        DateOfBirth = DateOnly.FromDateTime(DOB),
+                        Department = departmentAbbrev
+                    };
+                    db.Professors.Add(professor);
+                    break;
+                case "Student":
+                    // Create and add a new Student to the database
+                    Student student = new Student
+                    {
+                        Uid = uid,
+                        FirstName = firstName,
+                        LastName = lastName,
+                        DateOfBirth = DateOnly.FromDateTime(DOB),
+                        Department = departmentAbbrev
+                    };
+                    db.Students.Add(student);
+                    break;
+                default:
+                    throw new ArgumentException("Invalid role specified.");
+            }
+
+            db.SaveChanges(); // Save changes to the database
+
+            return uid;
         }
 
-        /*******End code to modify********/
+        // Helper method to generate a unique 7-digit UID
+        private string GetUniqueUID()
+        {
+            Random random = new Random();
+            string uid = random.Next(1000000, 9999999).ToString();
+            return uid;
+        }
     }
 }
