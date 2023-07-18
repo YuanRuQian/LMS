@@ -431,10 +431,70 @@ namespace LMS_CustomIdentity.Controllers
             }
 
             submission.Score = (ushort)score;
+
             db.SaveChanges();
+
+            // Update the student's grade for the class
+            UpdateStudentGrade(uid, classObj.Id);
 
             return Json(new { success = true });
         }
+
+        private void UpdateStudentGrade(string studentId, uint classId)
+        {
+            var enrollment = db.Enrollments.FirstOrDefault(e =>
+                e.ClassId == classId &&
+                e.StudentId == studentId);
+
+            if (enrollment != null)
+            {
+                var classObj = enrollment.Class;
+
+                // Get all assignment categories for the class
+                var assignmentCategories = db.AssignmentCategories.Where(ac => ac.ClassId == classObj.Id).ToList();
+
+                // Calculate the weighted percentage for each non-empty category
+                var totalWeightedPercentage = 0.0;
+                var totalCategoryWeights = 0.0;
+
+                foreach (var category in assignmentCategories)
+                {
+                    var categoryAssignments = db.Assignments
+                        .Where(a => a.CategoryId == category.Id)
+                        .ToList();
+
+                    if (categoryAssignments.Count > 0)
+                    {
+                        var totalPointsEarned = db.Submissions
+                            .Where(s => s.StudentId == studentId && s.Assignment.CategoryId == category.Id)
+                            .Sum(s => s.Score);
+
+                        var totalMaxPoints = categoryAssignments.Sum(a => a.Points);
+
+                        var categoryPercentage = (double)totalPointsEarned / totalMaxPoints;
+
+                        var scaledTotal = categoryPercentage * category.Weight;
+
+                        totalWeightedPercentage += scaledTotal;
+                        totalCategoryWeights += category.Weight;
+                    }
+                }
+
+                // Compute the total percentage for the class
+                var totalPercentage = 0.0;
+                if (totalCategoryWeights != 0)
+                {
+                    totalPercentage = (totalWeightedPercentage / totalCategoryWeights) * 100.0;
+                }
+
+                // Convert the class percentage to a letter grade using the U of U grading system
+                var letterGrade = CalculateLetterGrade(totalPercentage);
+
+                enrollment.Grade = letterGrade;
+                db.SaveChanges();
+            }
+        }
+
 
         /// <summary>
         /// Returns a JSON array of the classes taught by the specified professor

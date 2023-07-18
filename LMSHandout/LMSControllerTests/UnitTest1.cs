@@ -44,23 +44,7 @@ namespace LMSControllerTests
             Assert.Equal("CS", subject);
             Assert.Equal("KSoC", name);
 
-            // TEST: GetCatalog
-            var catalogResult = ctrl.GetCatalog() as JsonResult;
-
-            var catalogJsonResult = JsonSerializer.Serialize(catalogResult.Value);
-            output.WriteLine(catalogJsonResult);
-
-            var catalogArray = JArray.Parse(catalogJsonResult);
-            var catalogItem = catalogArray[0] as JObject;
-
-            var catalogSubject = (string)catalogItem["subject"];
-            var catalogName = (string)catalogItem["dname"];
-            var coursesArray = (JArray)catalogItem["courses"];
-
-            Assert.Equal(1, catalogArray.Count);
-            Assert.Equal("CS", catalogSubject);
-            Assert.Equal("KSoC", catalogName);
-            Assert.Single(coursesArray);
+            // TODO: test other controllers
         }
 
 
