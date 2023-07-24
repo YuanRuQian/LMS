@@ -487,10 +487,11 @@ namespace LMS_CustomIdentity.Controllers
                     totalPercentage = (totalWeightedPercentage / totalCategoryWeights) * 100.0;
                 }
 
+                // TODO:
                 // Convert the class percentage to a letter grade using the U of U grading system
-                var letterGrade = CalculateLetterGrade(totalPercentage);
+                // var letterGrade = CalculateLetterGrade(totalPercentage);
 
-                enrollment.Grade = letterGrade;
+                // enrollment.Grade = letterGrade;
                 db.SaveChanges();
             }
         }
