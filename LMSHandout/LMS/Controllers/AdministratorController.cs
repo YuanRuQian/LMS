@@ -170,6 +170,7 @@ namespace LMS.Controllers
             var course = db.Courses.FirstOrDefault(c => c.Department == subject && c.Number == number);
             if (course == null)
             {
+                Console.WriteLine("ERROR: Same year & season & course alerady has an offering.");
                 return Json(new { success = false });
             }
 
@@ -181,6 +182,7 @@ namespace LMS.Controllers
 
             if (existingClass != null)
             {
+                Console.WriteLine("ERROR: No such class.");
                 return Json(new { success = false });
             }
 
@@ -203,6 +205,7 @@ namespace LMS.Controllers
 
             if (conflictingClass != null)
             {
+                Console.WriteLine("ERROR: Same location time conflict.");
                 return Json(new { success = false });
             }
 
@@ -210,6 +213,7 @@ namespace LMS.Controllers
             var professor = db.Professors.FirstOrDefault(p => p.Uid == instructor);
             if (professor == null)
             {
+                Console.WriteLine("ERROR: No such professor.");
                 return Json(new { success = false });
             }
 
@@ -219,10 +223,11 @@ namespace LMS.Controllers
                 c.ProfessorId == instructor &&
                 c.Season == season &&
                 c.Year == year &&
-                !(start.TimeOfDay.CompareTo(c.EndTime) >= 0 || end.TimeOfDay.CompareTo(c.StartTime) <= 0));
+                !(startTimeOnly.CompareTo(c.EndTime) >= 0 || endTimeOnly.CompareTo(c.StartTime) <= 0));
 
             if (conflictingProfessorClass != null)
             {
+                Console.WriteLine("ERROR: Same instructor time conflict.");
                 return Json(new { success = false });
             }
 
