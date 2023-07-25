@@ -336,13 +336,18 @@ namespace LMS.Controllers
                 if (enrollment.Grade != null && enrollment.Grade != "--")
                 {
                     double points = Helper.GetGradePoint(enrollment.Grade);
+                    Console.WriteLine($"Points for grade '{enrollment.Grade}': {points}");
                     totalPoints += points * 4.0; // Assuming all classes are 4 credit hours
                     totalCredits += 4;
                 }
             }
 
+            Console.WriteLine($"Total Points: {totalPoints}, Total Credits: {totalCredits}");
+
             // Calculate the GPA
             double gpa = totalCredits > 0 ? totalPoints / totalCredits : 0.0;
+
+            Console.WriteLine($"GPA calculated: {gpa}");
 
             return Json(new { gpa });
         }

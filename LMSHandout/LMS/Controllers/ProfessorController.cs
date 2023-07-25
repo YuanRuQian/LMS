@@ -479,28 +479,44 @@ namespace LMS_CustomIdentity.Controllers
                     double categoryTotalPointsEarned = 0.0;
                     double categoryTotalMaxPoints = 0.0;
 
+                    bool hasSubmission = false;
+
                     foreach (var assignment in assignments)
                     {
                         // Find the highest score for each assignment
                         double assignmentMaxPoints = assignment.Points;
-                        double assignmentTotalPoints = db.Submissions
-                            .Where(s => s.AssignmentId == assignment.Id && s.StudentId == studentId)
-                            .Max(s => (double?)s.Score) ?? 0.0;
+                        var submission = db.Submissions.SingleOrDefault(s => s.AssignmentId == assignment.Id && s.StudentId == studentId);
 
-                        categoryTotalPointsEarned += assignmentTotalPoints;
-                        categoryTotalMaxPoints += assignmentMaxPoints;
+                        if (submission != null && submission.Score != null)
+                        {
+                            hasSubmission = true;
+
+                            // Calculate the total points earned for this assignment
+                            double assignmentTotalPoints = (double)submission.Score;
+
+                            Console.WriteLine($"assignmentMaxPoints: {assignmentMaxPoints}, assignmentTotalPoints: {assignmentTotalPoints}");
+
+                            categoryTotalPointsEarned += assignmentTotalPoints;
+                            categoryTotalMaxPoints += assignmentMaxPoints;
+                        }
                     }
 
-                    // Calculate the category percentage
-                    double categoryPercentage = categoryTotalMaxPoints > 0 ? categoryTotalPointsEarned / categoryTotalMaxPoints : 0.0;
+                    if (hasSubmission)
+                    {
+                        // Calculate the category percentage
+                        double categoryPercentage = categoryTotalMaxPoints > 0 ? categoryTotalPointsEarned / categoryTotalMaxPoints : 0.0;
 
-                    // Scale the category percentage by its weight
-                    double scaledCategoryTotal = categoryPercentage * category.Weight;
+                        // Scale the category percentage by its weight
+                        double scaledCategoryTotal = categoryPercentage * category.Weight;
 
-                    // Add the scaled category total to cumulativePoints and totalPoints
-                    cumulativePoints += scaledCategoryTotal;
-                    totalPoints += category.Weight;
+                        // Add the scaled category total to cumulativePoints and totalPoints
+                        cumulativePoints += scaledCategoryTotal;
+                        totalPoints += category.Weight;
+                    }
                 }
+
+                Console.WriteLine("UpdateStudentGrade calculate GPA");
+                Console.WriteLine($"cumulativePoints: {cumulativePoints}, totalPoints: {totalPoints}");
 
                 string letterGrade = Helper.PercentageToGradePoint(cumulativePoints, totalPoints);
 
