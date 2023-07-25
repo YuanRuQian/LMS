@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using LMS.Models.LMSModels;
@@ -115,21 +116,38 @@ namespace LMS.Controllers
                 return Json(new List<object>());
             }
 
-            var assignments = db.Enrollments
-                .Where(e => e.StudentId == uid && e.Class.Course.Department == subject && e.Class.Course.Number == num && e.Class.Season == season && e.Class.Year == year)
-                .Join(db.Assignments,
-                    enrollment => enrollment.ClassId,
-                    assignment => assignment.CategoryId,
-                    (enrollment, assignment) => new
-                    {
-                        aname = assignment.Name,
-                        cname = assignment.Category.Name,
-                        due = assignment.Due,
-                        score = assignment.Submissions.FirstOrDefault(s => s.StudentId == uid) != null
-                            ? assignment.Submissions.First(s => s.StudentId == uid).Score
-                            : null
-                    })
+            Debug.WriteLine($"Student with Uid '{uid}' exists.");
+
+            /// Step 1: Get the class that the student is enrolled in based on the provided parameters
+            var enrolledClass = db.Classes.FirstOrDefault(c =>
+                c.Course.Department == subject &&
+                c.Course.Number == num &&
+                c.Season == season &&
+                c.Year == year &&
+                c.Enrollments.Any(e => e.StudentId == uid));
+
+            if (enrolledClass == null)
+            {
+                Debug.WriteLine($"No class found for the student with Uid '{uid}' and provided course parameters.");
+                return Json(new List<object>());
+            }
+
+            Debug.WriteLine($"Enrolled class found: ClassId: {enrolledClass.Id}, CourseId: {enrolledClass.CourseId}, ProfessorId: {enrolledClass.ProfessorId}, Year: {enrolledClass.Year}, Season: {enrolledClass.Season}, StartTime: {enrolledClass.StartTime}, EndTime: {enrolledClass.EndTime}, Location: {enrolledClass.Location}");
+
+
+            // Step 2: Get all assignments for the class
+            var assignments = db.Assignments
+                .Where(a => a.Category.ClassId == enrolledClass.Id)
+                .Select(a => new
+                {
+                    aname = a.Name,
+                    cname = a.Category.Name,
+                    due = a.Due,
+                    score = (ushort?)null // Placeholder for the score, will be updated later
+                })
                 .ToList();
+
+            Debug.WriteLine($"Total assignments found for the class with ClassId '{enrolledClass.Id}': {assignments.Count}");
 
             return Json(assignments);
         }
@@ -262,12 +280,18 @@ namespace LMS.Controllers
                 return Json(new { success = false });
             }
 
+            // Check if there are any assignments for the enrolled class
+            bool hasAssignments = db.Assignments.Any(a => a.Category.ClassId == classObj.Id);
+
+            // Set the grade based on the existence of assignments
+            string? grade = hasAssignments ? "E" : null;
+
             // Create a new enrollment
             var enrollment = new Enrollment
             {
                 StudentId = uid,
                 ClassId = classObj.Id,
-                Grade = null
+                Grade = grade
             };
 
             db.Enrollments.Add(enrollment);
@@ -275,7 +299,6 @@ namespace LMS.Controllers
 
             return Json(new { success = true });
         }
-
 
         /// <summary>
         /// Calculates a student's GPA
@@ -312,7 +335,7 @@ namespace LMS.Controllers
             {
                 if (enrollment.Grade != null && enrollment.Grade != "--")
                 {
-                    double points = GetGradePoint(enrollment.Grade);
+                    double points = Helper.GetGradePoint(enrollment.Grade);
                     totalPoints += points * 4.0; // Assuming all classes are 4 credit hours
                     totalCredits += 4;
                 }
@@ -324,39 +347,6 @@ namespace LMS.Controllers
             return Json(new { gpa });
         }
 
-        // Helper method to get the grade point value based on the letter grade
-        private double GetGradePoint(string grade)
-        {
-            switch (grade.ToUpper())
-            {
-                case "A":
-                    return 4.0;
-                case "A-":
-                    return 3.7;
-                case "B+":
-                    return 3.3;
-                case "B":
-                    return 3.0;
-                case "B-":
-                    return 2.7;
-                case "C+":
-                    return 2.3;
-                case "C":
-                    return 2.0;
-                case "C-":
-                    return 1.7;
-                case "D+":
-                    return 1.3;
-                case "D":
-                    return 1.0;
-                case "D-":
-                    return 0.7;
-                case "E":
-                    return 0.0;
-                default:
-                    return 0.0;
-            }
-        }
 
 
     }

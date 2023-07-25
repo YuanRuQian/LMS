@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
+using LMS.Controllers;
 using LMS.Models.LMSModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -302,8 +303,21 @@ namespace LMS_CustomIdentity.Controllers
             db.Assignments.Add(newAssignment);
             db.SaveChanges();
 
+            UpdateAllStudentGrades(classObj.Id);
+
             return Json(new { success = true });
         }
+
+        public void UpdateAllStudentGrades(uint classId)
+        {
+            var enrollments = db.Enrollments.Where(e => e.ClassId == classId).ToList();
+
+            foreach (var enrollment in enrollments)
+            {
+                UpdateStudentGrade(enrollment.StudentId, classId);
+            }
+        }
+
 
         /// <summary>
         /// Gets a JSON array of all the submissions to a certain assignment.
@@ -453,45 +467,45 @@ namespace LMS_CustomIdentity.Controllers
                 // Get all assignment categories for the class
                 var assignmentCategories = db.AssignmentCategories.Where(ac => ac.ClassId == classObj.Id).ToList();
 
-                // Calculate the weighted percentage for each non-empty category
-                var totalWeightedPercentage = 0.0;
-                var totalCategoryWeights = 0.0;
+                double cumulativePoints = 0.0;
+                double totalPoints = 0.0;
 
                 foreach (var category in assignmentCategories)
                 {
-                    var categoryAssignments = db.Assignments
-                        .Where(a => a.CategoryId == category.Id)
-                        .ToList();
+                    // Get all assignments for the category
+                    var assignments = db.Assignments.Where(a => a.CategoryId == category.Id).ToList();
 
-                    if (categoryAssignments.Count > 0)
+                    // Calculate category total points earned and total max points
+                    double categoryTotalPointsEarned = 0.0;
+                    double categoryTotalMaxPoints = 0.0;
+
+                    foreach (var assignment in assignments)
                     {
-                        var totalPointsEarned = db.Submissions
-                            .Where(s => s.StudentId == studentId && s.Assignment.CategoryId == category.Id)
-                            .Sum(s => s.Score);
+                        // Find the highest score for each assignment
+                        double assignmentMaxPoints = assignment.Points;
+                        double assignmentTotalPoints = db.Submissions
+                            .Where(s => s.AssignmentId == assignment.Id && s.StudentId == studentId)
+                            .Max(s => (double?)s.Score) ?? 0.0;
 
-                        var totalMaxPoints = categoryAssignments.Sum(a => a.Points);
-
-                        var categoryPercentage = (double)totalPointsEarned / totalMaxPoints;
-
-                        var scaledTotal = categoryPercentage * category.Weight;
-
-                        totalWeightedPercentage += scaledTotal;
-                        totalCategoryWeights += category.Weight;
+                        categoryTotalPointsEarned += assignmentTotalPoints;
+                        categoryTotalMaxPoints += assignmentMaxPoints;
                     }
+
+                    // Calculate the category percentage
+                    double categoryPercentage = categoryTotalMaxPoints > 0 ? categoryTotalPointsEarned / categoryTotalMaxPoints : 0.0;
+
+                    // Scale the category percentage by its weight
+                    double scaledCategoryTotal = categoryPercentage * category.Weight;
+
+                    // Add the scaled category total to cumulativePoints and totalPoints
+                    cumulativePoints += scaledCategoryTotal;
+                    totalPoints += category.Weight;
                 }
 
-                // Compute the total percentage for the class
-                var totalPercentage = 0.0;
-                if (totalCategoryWeights != 0)
-                {
-                    totalPercentage = (totalWeightedPercentage / totalCategoryWeights) * 100.0;
-                }
+                string letterGrade = Helper.PercentageToGradePoint(cumulativePoints, totalPoints);
 
-                // TODO:
-                // Convert the class percentage to a letter grade using the U of U grading system
-                // var letterGrade = CalculateLetterGrade(totalPercentage);
+                enrollment.Grade = letterGrade;
 
-                // enrollment.Grade = letterGrade;
                 db.SaveChanges();
             }
         }
@@ -528,9 +542,6 @@ namespace LMS_CustomIdentity.Controllers
 
             return Json(classes);
         }
-
-
-        /*******End code to modify********/
     }
 }
 

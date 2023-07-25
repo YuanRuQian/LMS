@@ -1,10 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Reflection.Metadata;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Humanizer;
 using LMS.Models.LMSModels;
 using Microsoft.AspNetCore.Mvc;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -158,6 +162,8 @@ namespace LMS.Controllers
         /// within the start-end range in the same semester, or if there is already
         /// a Class offering of the same Course in the same Semester,
         /// true otherwise.</returns>
+
+
         public IActionResult CreateClass(string subject, int number, string season, int year, DateTime start, DateTime end, string location, string instructor)
         {
             // Find the course
@@ -178,12 +184,22 @@ namespace LMS.Controllers
                 return Json(new { success = false });
             }
 
-            // Check if another class occupies the same location during any time within the start-end range in the same semester
-            var conflictingClass = db.Classes.FirstOrDefault(c =>
+            // Convert DateTime to TimeOnly for start and end times
+            TimeOnly startTimeOnly = TimeOnly.FromDateTime(start);
+            TimeOnly endTimeOnly = TimeOnly.FromDateTime(end);
+
+            // Fetch the classes from the database and perform client-side evaluation
+            var classes = db.Classes.Where(c =>
                 c.Location == location &&
                 c.Season == season &&
-                c.Year == year &&
-                !(start.TimeOfDay.Ticks >= c.EndTime.Ticks || end.TimeOfDay.Ticks <= c.StartTime.Ticks));
+                c.Year == year).ToList();
+
+            // Check if another class occupies the same location during any time within the start-end range in the same semester
+            var conflictingClass = classes.FirstOrDefault(c =>
+            {
+                // Use TimeOnly directly for comparison
+                return !(startTimeOnly.CompareTo(c.EndTime) >= 0 || endTimeOnly.CompareTo(c.StartTime) <= 0);
+            });
 
             if (conflictingClass != null)
             {
@@ -193,6 +209,19 @@ namespace LMS.Controllers
             // Find the professor
             var professor = db.Professors.FirstOrDefault(p => p.Uid == instructor);
             if (professor == null)
+            {
+                return Json(new { success = false });
+            }
+
+            // TODO: FIX DATE COMPARISON ERROR
+            // Check if the professor has already taught a class in the same time span
+            var conflictingProfessorClass = db.Classes.FirstOrDefault(c =>
+                c.ProfessorId == instructor &&
+                c.Season == season &&
+                c.Year == year &&
+                !(start.TimeOfDay.CompareTo(c.EndTime) >= 0 || end.TimeOfDay.CompareTo(c.StartTime) <= 0));
+
+            if (conflictingProfessorClass != null)
             {
                 return Json(new { success = false });
             }
@@ -214,7 +243,6 @@ namespace LMS.Controllers
 
             return Json(new { success = true });
         }
-
     }
 }
 
