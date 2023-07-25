@@ -143,7 +143,10 @@ namespace LMS.Controllers
                     aname = a.Name,
                     cname = a.Category.Name,
                     due = a.Due,
-                    score = (ushort?)null // Placeholder for the score, will be updated later
+                    score = db.Submissions
+                    .Where(s => s.AssignmentId == a.Id && s.StudentId == uid && s.Score != null)
+                    .Select(s => (ushort?)s.Score)
+                    .SingleOrDefault()
                 })
                 .ToList();
 
