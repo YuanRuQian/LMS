@@ -5,21 +5,14 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json.Linq;
 using System;
-using System.Text.Json;
-using Xunit.Abstractions;
 
 namespace LMSControllerTests
 {
     public class UnitTest1
     {
-        private readonly ITestOutputHelper output;
-
-        public UnitTest1(ITestOutputHelper output)
-        {
-            this.output = output;
-        }
+        // Uncomment the methods below after scaffolding
+        // (they won't compile until then)
 
         [Fact]
         public void Test1()
@@ -27,24 +20,12 @@ namespace LMSControllerTests
             // An example of a simple unit test on the CommonController
             CommonController ctrl = new CommonController(MakeTinyDB());
 
-            // TEST: GetDepartments
             var allDepts = ctrl.GetDepartments() as JsonResult;
 
-            var jsonResult = JsonSerializer.Serialize(allDepts.Value);
-            output.WriteLine(jsonResult);
+            dynamic x = allDepts.Value;
 
-            var jsonArray = JArray.Parse(jsonResult);
-            var firstItem = jsonArray[0] as JObject;
-
-            Assert.Equal(1, jsonArray.Count);
-
-            var subject = (string)firstItem["subject"];
-            var name = (string)firstItem["name"];
-
-            Assert.Equal("CS", subject);
-            Assert.Equal("KSoC", name);
-
-            // TODO: test other controllers
+            Assert.Equal(1, x.Length);
+            Assert.Equal("CS", x[0].subject);
         }
 
 

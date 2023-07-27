@@ -9,9 +9,10 @@ using LMS.Models.LMSModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using static System.Runtime.InteropServices.JavaScript.JSType;
+using System.Runtime.CompilerServices;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
-
+[assembly: InternalsVisibleTo("LMSControllerTests")]
 namespace LMS.Controllers
 {
     public class CommonController : Controller
@@ -37,7 +38,7 @@ namespace LMS.Controllers
                 subject = d.Subject
             }).ToList();
 
-            return Json(departments);
+            return Json(departments.ToArray());
         }
 
 
@@ -66,7 +67,7 @@ namespace LMS.Controllers
                 }).ToList()
             }).ToList();
 
-            return Json(catalog);
+            return Json(catalog.ToArray());
         }
 
         /// <summary>
@@ -99,7 +100,7 @@ namespace LMS.Controllers
                     lname = cls.Professor.LastName
                 }).ToList();
 
-            return Json(classOfferings);
+            return Json(classOfferings.ToArray());
         }
 
         /// <summary>
