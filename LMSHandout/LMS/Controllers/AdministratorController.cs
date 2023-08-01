@@ -170,7 +170,7 @@ namespace LMS.Controllers
             var course = db.Courses.FirstOrDefault(c => c.Department == subject && c.Number == number);
             if (course == null)
             {
-                Console.WriteLine("ERROR: Same year & season & course alerady has an offering.");
+                Console.WriteLine("ERROR: No such course.");
                 return Json(new { success = false });
             }
 
@@ -182,7 +182,7 @@ namespace LMS.Controllers
 
             if (existingClass != null)
             {
-                Console.WriteLine("ERROR: No such class.");
+                Console.WriteLine("ERROR: Class already exists.");
                 return Json(new { success = false });
             }
 
@@ -217,7 +217,6 @@ namespace LMS.Controllers
                 return Json(new { success = false });
             }
 
-            // TODO: FIX DATE COMPARISON ERROR
             // Check if the professor has already taught a class in the same time span
             var conflictingProfessorClass = db.Classes.FirstOrDefault(c =>
                 c.ProfessorId == instructor &&

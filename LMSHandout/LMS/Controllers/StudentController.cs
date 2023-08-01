@@ -176,40 +176,32 @@ namespace LMS.Controllers
         public IActionResult SubmitAssignmentText(string subject, int num, string season, int year,
             string category, string asgname, string uid, string contents)
         {
-            // Find the student
-            var student = db.Students.FirstOrDefault(s => s.Uid == uid);
-            if (student == null)
-            {
-                return Json(new { success = false });
-            }
-
-            // Find the assignment category
-            var assignmentCategory = db.AssignmentCategories.FirstOrDefault(c =>
-                c.Class.Course.Department == subject &&
-                c.Class.Course.Number == num &&
-                c.Class.Season == season &&
-                c.Class.Year == year &&
-                c.Name == category);
-
-            if (assignmentCategory == null)
-            {
-                return Json(new { success = false });
-            }
-
-            // Find the assignment within the category
-            var assignment = db.Assignments.FirstOrDefault(a =>
-                a.CategoryId == assignmentCategory.Id &&
-                a.Name == asgname);
-
+            // find the assignment 
+            var assignment = (from course in db.Courses
+                              join class_ in db.Classes
+                                  on course.Id equals class_.CourseId
+                              join enrollment in db.Enrollments
+                                 on class_.Id equals enrollment.ClassId
+                              join student in db.Students
+                                  on enrollment.StudentId equals student.Uid
+                              join cate in db.AssignmentCategories
+                                  on class_.Id equals cate.ClassId
+                              join assignm in db.Assignments
+                                  on cate.Id equals assignm.CategoryId
+                              where student.Uid == uid && course.Department == subject && course.Number == num &&
+                              class_.Season == season && class_.Year == year &&
+                              cate.Name == category && assignm.Name == asgname
+                              select assignm).SingleOrDefault();
+            // if the assignment doesn't exist, return false
             if (assignment == null)
             {
                 return Json(new { success = false });
             }
 
-            // Find the submission for the student and assignment
-            var submission = db.Submissions.FirstOrDefault(s =>
-                s.StudentId == uid &&
-                s.AssignmentId == assignment.Id);
+            // check if the student has submitted the assignment
+            var submission = (from subm in db.Submissions
+                              where subm.StudentId == uid && subm.AssignmentId == assignment.Id
+                              select subm).SingleOrDefault();
 
             // If a submission already exists, update its contents and time
             if (submission != null)
@@ -226,7 +218,7 @@ namespace LMS.Controllers
                     AssignmentId = assignment.Id,
                     Time = DateTime.Now,
                     Contents = contents,
-                    Score = null
+                    Score = 0
                 };
                 db.Submissions.Add(submission);
             }
