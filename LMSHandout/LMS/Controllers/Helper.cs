@@ -40,50 +40,51 @@ namespace LMS.Controllers
 
         public static string PercentageToGradePoint(double cumulativePoints, double totalPoints)
         {
-            double gradePoint = cumulativePoints / totalPoints * 4.0;
+            double gradePoint = cumulativePoints / totalPoints * 100;
 
             // Now, we'll reverse the scale using the GetGradePoint method
-            if (gradePoint == 4.0)
+            // reference: https://eli.utah.edu/about_the_eli/graduationreq.php#:~:text=University%20Connected%20Learning%20%20%20%20Letter%20Grade,the%20objective%20...%20%208%20more%20rows%20
+            if (gradePoint >= 93 )
             {
                 return "A";
             }
-            else if (gradePoint >= 3.7)
+            else if (gradePoint >= 89)
             {
                 return "A-";
             }
-            else if (gradePoint >= 3.3)
+            else if (gradePoint >= 86)
             {
                 return "B+";
             }
-            else if (gradePoint >= 3.0)
+            else if (gradePoint >= 83)
             {
                 return "B";
             }
-            else if (gradePoint >= 2.7)
+            else if (gradePoint >= 79)
             {
                 return "B-";
             }
-            else if (gradePoint >= 2.3)
+            else if (gradePoint >= 76)
             {
                 return "C+";
             }
-            else if (gradePoint >= 2.0)
+            else if (gradePoint >= 73)
             {
                 return "C";
             }
-            else if (gradePoint >= 1.7)
+            else if (gradePoint >= 69)
             {
                 return "C-";
             }
-            else if (gradePoint >= 1.3)
+            else if (gradePoint >= 66)
             {
                 return "D+";
             }
-            else if (gradePoint >= 1.0)
+            else if (gradePoint >= 63)
             {
                 return "D";
             }
-            else if (gradePoint >= 0.7)
+            else if (gradePoint >= 60)
             {
                 return "D-";
             }

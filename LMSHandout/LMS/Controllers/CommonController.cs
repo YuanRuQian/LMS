@@ -172,14 +172,6 @@ namespace LMS.Controllers
             var student = db.Students.FirstOrDefault(s => s.Uid == uid);
             var admin = db.Administrators.FirstOrDefault(a => a.Uid == uid);
 
-            if(student == null)
-            {
-                Console.WriteLine($"uid: {uid} student is null");
-            } else
-            {
-                Console.WriteLine($"uid: {uid} student is not null");
-            }
-
             if (professor != null)
             {
                 var userObject = new

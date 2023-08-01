@@ -217,6 +217,16 @@ namespace LMS_CustomIdentity.Controllers
                 return Json(new { success = false });
             }
 
+            var classObj = db.Classes.FirstOrDefault(c =>
+                c.CourseId == course.Id &&
+                c.Season == season &&
+                c.Year == year);
+
+            if (classObj == null)
+            {
+                return Json(new { success = false });
+            }
+
             var existingCategory = db.AssignmentCategories.FirstOrDefault(ac =>
                 ac.Class.CourseId == course.Id &&
                 ac.Class.Season == season &&
@@ -232,8 +242,7 @@ namespace LMS_CustomIdentity.Controllers
             {
                 Name = category,
                 Weight = (ushort)catweight,
-                ClassId = db.Classes
-                    .FirstOrDefault(c => c.CourseId == course.Id && c.Season == season && c.Year == year)?.Id ?? 0
+                ClassId = classObj.Id
             };
 
             db.AssignmentCategories.Add(newCategory);
@@ -474,34 +483,31 @@ namespace LMS_CustomIdentity.Controllers
                 {
                     // Get all assignments for the category
                     var assignments = db.Assignments.Where(a => a.CategoryId == category.Id).ToList();
+                    bool hasAssignments = assignments.Count() != 0;
 
                     // Calculate category total points earned and total max points
                     double categoryTotalPointsEarned = 0.0;
                     double categoryTotalMaxPoints = 0.0;
 
-                    bool hasSubmission = false;
-
                     foreach (var assignment in assignments)
                     {
+                        
                         // Find the highest score for each assignment
                         double assignmentMaxPoints = assignment.Points;
+                        categoryTotalMaxPoints += assignmentMaxPoints;
+
                         var submission = db.Submissions.SingleOrDefault(s => s.AssignmentId == assignment.Id && s.StudentId == studentId);
-
-                        if (submission != null && submission.Score != null)
+                        if (submission != null)
                         {
-                            hasSubmission = true;
-
                             // Calculate the total points earned for this assignment
-                            double assignmentTotalPoints = (double)submission.Score;
-
+                            double assignmentTotalPoints = (double) submission.Score;
+                            categoryTotalPointsEarned += assignmentTotalPoints;
                             Console.WriteLine($"assignmentMaxPoints: {assignmentMaxPoints}, assignmentTotalPoints: {assignmentTotalPoints}");
 
-                            categoryTotalPointsEarned += assignmentTotalPoints;
-                            categoryTotalMaxPoints += assignmentMaxPoints;
                         }
                     }
 
-                    if (hasSubmission)
+                    if (hasAssignments)
                     {
                         // Calculate the category percentage
                         double categoryPercentage = categoryTotalMaxPoints > 0 ? categoryTotalPointsEarned / categoryTotalMaxPoints : 0.0;
