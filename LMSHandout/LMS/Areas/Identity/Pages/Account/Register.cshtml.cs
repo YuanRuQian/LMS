@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace LMS.Areas.Identity.Pages.Account
@@ -180,8 +181,6 @@ namespace LMS.Areas.Identity.Pages.Account
             }
         }
 
-        /*******Begin code to modify********/
-
         /// <summary>
         /// Create a new user of the LMS with the specified information and add it to the database.
         /// Assigns the user a unique uID consisting of a 'u' followed by 7 digits.
@@ -192,11 +191,84 @@ namespace LMS.Areas.Identity.Pages.Account
         /// <param name="departmentAbbrev">The department abbreviation that the user belongs to (ignore for Admins) </param>
         /// <param name="role">The user's role: one of "Administrator", "Professor", "Student"</param>
         /// <returns>The uID of the new user</returns>
-        string CreateNewUser( string firstName, string lastName, DateTime DOB, string departmentAbbrev, string role )
+        private string CreateNewUser(string firstName, string lastName, DateTime DOB, string departmentAbbrev, string role)
         {
-            return "unknown";
+            string uid = GetUniqueUID(); // Generate a unique UID for the user
+
+            switch (role)
+            {
+                case "Administrator":
+                    // Create and add a new Administrator to the database
+                    Administrator administrator = new Administrator
+                    {
+                        Uid = uid,
+                        FirstName = firstName,
+                        LastName = lastName,
+                        DateOfBirth = DateOnly.FromDateTime(DOB)
+                    };
+                    db.Administrators.Add(administrator);
+                    break;
+                case "Professor":
+                    // Create and add a new Professor to the database
+                    Professor professor = new Professor
+                    {
+                        Uid = uid,
+                        FirstName = firstName,
+                        LastName = lastName,
+                        DateOfBirth = DateOnly.FromDateTime(DOB),
+                        Department = departmentAbbrev
+                    };
+                    db.Professors.Add(professor);
+                    break;
+                case "Student":
+                    // Create and add a new Student to the database
+                    Student student = new Student
+                    {
+                        Uid = uid,
+                        FirstName = firstName,
+                        LastName = lastName,
+                        DateOfBirth = DateOnly.FromDateTime(DOB),
+                        Department = departmentAbbrev
+                    };
+                    db.Students.Add(student);
+                    break;
+                default:
+                    throw new ArgumentException("Invalid role specified.");
+            }
+
+            db.SaveChanges(); // Save changes to the database
+
+            return uid;
         }
 
-        /*******End code to modify********/
+        private string GetUniqueUID()
+        {
+            // Initialize starting value
+            int maxUid = 0;
+
+            // Retrieve the maximum UID from each table
+            string maxAdministratorID = db.Administrators.Select(x => x.Uid).DefaultIfEmpty().Max();
+            string maxProfessorID = db.Professors.Select(x => x.Uid).DefaultIfEmpty().Max();
+            string maxStudentID = db.Students.Select(x => x.Uid).DefaultIfEmpty().Max();
+
+            // Find the maximum UID among the three tables
+            if (maxAdministratorID != null)
+                maxUid = Math.Max(maxUid, int.Parse(maxAdministratorID.Substring(1)));
+
+            if (maxProfessorID != null)
+                maxUid = Math.Max(maxUid, int.Parse(maxProfessorID.Substring(1)));
+
+            if (maxStudentID != null)
+                maxUid = Math.Max(maxUid, int.Parse(maxStudentID.Substring(1)));
+
+            // Increment the maximum UID to generate the new UID
+            int newUid = maxUid + 1;
+
+            // Format the new UID with leading zeros to ensure it has 7 digits
+            string formattedUid = $"u{newUid:D7}";
+
+            return formattedUid;
+        }
+
     }
 }
