@@ -48,11 +48,11 @@ namespace LMS.Controllers
             {
                 return "A";
             }
-            else if (gradePoint >= 89)
+            else if (gradePoint >= 90)
             {
                 return "A-";
             }
-            else if (gradePoint >= 86)
+            else if (gradePoint >= 87)
             {
                 return "B+";
             }
@@ -60,11 +60,11 @@ namespace LMS.Controllers
             {
                 return "B";
             }
-            else if (gradePoint >= 79)
+            else if (gradePoint >= 80)
             {
                 return "B-";
             }
-            else if (gradePoint >= 76)
+            else if (gradePoint >= 77)
             {
                 return "C+";
             }
@@ -72,11 +72,11 @@ namespace LMS.Controllers
             {
                 return "C";
             }
-            else if (gradePoint >= 69)
+            else if (gradePoint >= 70)
             {
                 return "C-";
             }
-            else if (gradePoint >= 66)
+            else if (gradePoint >= 67)
             {
                 return "D+";
             }
